@@ -1,0 +1,16 @@
+{
+  "mission": {"value": "78%", "scope": "Brownsville BIVO"},
+  "lastUpdated": "Live demo",
+  "sites": [
+    {"name": "Brownsville BIVO", "value": "78%", "status": "critical"},
+    {"name": "Mott Haven BRAG", "value": "64%", "status": "warning"},
+    {"name": "Bed-Stuy S.O.S.", "value": "88%", "status": "stable"},
+    {"name": "Crown Heights", "value": "91%", "status": "stable"},
+    {"name": "East Harlem SAVE", "value": "72%", "status": "warning"}
+  ],
+  "alerts": [
+    {"title": "Shots Fired — Brownsville", "status": "MONITORING", "tone": "red", "time": "2m", "description": "Citizen alert and radio corroboration. Awaiting supervisor confirmation."},
+    {"title": "Group Dispute — Mott Haven", "status": "HIGH RISK", "tone": "yellow", "time": "6m", "description": "Known conflict area. Elevated probability; not confirmed for dispatch."},
+    {"title": "Conflict De-escalated", "status": "RESOLVED", "tone": "green", "time": "23m", "description": "Parties separated. Outcome pending staff confirmation."}
+  ]
+}
