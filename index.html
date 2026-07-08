@@ -73,4 +73,76 @@ async function refreshLiveData(){
 refreshLiveData();
 setInterval(refreshLiveData, 15000);
 </script>
+
+<style>
+/* Interactive prototype additions */
+.incident-card{cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease}.incident-card:hover{transform:translateY(-1px);border-color:rgba(10,132,255,.55);background:#1B1F27}.incident-card.confirmed{border-color:rgba(48,209,88,.65);background:rgba(48,209,88,.08)}.interactive-panel{display:grid;gap:10px;margin-top:14px}.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.choice{border:1px solid var(--hair);background:var(--surface2);border-radius:14px;padding:10px;color:var(--text);text-align:left;cursor:pointer}.choice:hover,.choice.active{border-color:rgba(10,132,255,.65);background:rgba(10,132,255,.12)}.timeline{display:grid;gap:8px;margin-top:10px}.timeline-row{display:flex;gap:8px;align-items:flex-start;color:var(--secondary);font-size:12px}.timeline-row:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--blue);margin-top:4px;flex:0 0 auto}.drawer-field{display:grid;gap:6px;margin:10px 0}.drawer-field textarea,.drawer-field input{width:100%;border:1px solid var(--hair);border-radius:12px;background:#0B0D12;color:var(--text);padding:10px;font:inherit}.pulse{animation:pulse 1.2s ease-out 1}@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(10,132,255,.55)}100%{box-shadow:0 0 0 14px rgba(10,132,255,0)}}
+</style>
+<script>
+(function(){
+  const state={selectedIncident:0, assignedVI:null, hospitalAck:false, audit:[]};
+  const viOptions=[['Dwayne T.','0.6 mi','Available'],['Maria R.','1.1 mi','On duty'],['Kev P.','1.8 mi','Backup']];
+  function addAudit(action){
+    const stamp=new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    state.audit.unshift({stamp, actor:'Supervisor', action});
+    if(state.audit.length>8) state.audit.pop();
+  }
+  function activeIncident(){return document.querySelectorAll('#dispatch .incident-card')[state.selectedIncident] || document.querySelector('#dispatch .incident-card')}
+  function incidentTitle(){const card=activeIncident(); return card?.querySelector('h3')?.textContent || 'Selected incident'}
+  function selectIncident(i){
+    state.selectedIncident=i;
+    document.querySelectorAll('#dispatch .incident-card').forEach((c,idx)=>c.classList.toggle('active',idx===i));
+    const title=incidentTitle();
+    const mapTitle=document.querySelector('#dispatch .map .card-title');
+    if(mapTitle) mapTitle.innerHTML='Selected Incident Map <span class="status-pill red">Dispatch Blocked</span>';
+    const firstPin=document.querySelector('#dispatch .pin.red span');
+    if(firstPin) firstPin.textContent=title.replace('Shots Fired — ','').replace('Group Dispute — ','');
+    renderDecisionPanel();
+  }
+  function renderDecisionPanel(){
+    const decision=[...document.querySelectorAll('#dispatch .card')].find(c=>c.textContent.includes('Dispatch Decision'));
+    if(!decision) return;
+    let panel=decision.querySelector('.interactive-panel');
+    if(!panel){panel=document.createElement('div');panel.className='interactive-panel';decision.querySelector('.card-body')?.appendChild(panel)}
+    panel.innerHTML=`
+      <div class="field"><label>Selected Incident</label><b>${incidentTitle()}</b></div>
+      <div class="choice-grid">
+        ${viOptions.map(v=>`<button class="choice ${state.assignedVI===v[0]?'active':''}" data-assign="${v[0]}"><b>${v[0]}</b><br><span class="caption">${v[1]} · ${v[2]}</span></button>`).join('')}
+      </div>
+      <button class="btn primary" data-action="confirm">Confirm + Audit Dispatch</button>
+      <button class="btn" data-action="hospital">Ack Hospital Advisory</button>
+      <button class="btn alert" data-action="override">Break-Glass Override</button>
+      <div class="timeline" id="liveTimeline">${state.audit.map(a=>`<div class="timeline-row"><b>${a.stamp}</b> ${a.actor}: ${a.action}</div>`).join('') || '<div class="caption">No actions yet. Select an incident, assign a VI, then confirm.</div>'}</div>`;
+  }
+  document.addEventListener('click', e=>{
+    const card=e.target.closest('#dispatch .incident-card');
+    if(card){selectIncident([...document.querySelectorAll('#dispatch .incident-card')].indexOf(card)); return;}
+    const assign=e.target.closest('[data-assign]');
+    if(assign){state.assignedVI=assign.dataset.assign; addAudit(`Assigned ${state.assignedVI} to ${incidentTitle()}`); showToast(`${state.assignedVI} selected. Supervisor confirmation still required.`); renderDecisionPanel(); return;}
+    const action=e.target.closest('[data-action]');
+    if(!action) return;
+    if(action.dataset.action==='confirm'){
+      if(!state.assignedVI){showToast('Pick a VI before confirming dispatch.'); return;}
+      const card=activeIncident(); card.classList.add('confirmed','pulse');
+      const pill=card.querySelector('.status-pill'); if(pill){pill.textContent='CONFIRMED'; pill.className='status-pill green'}
+      addAudit(`Confirmed ${incidentTitle()} dispatch to ${state.assignedVI}`);
+      showToast('Dispatch confirmed and audit stamped.'); renderDecisionPanel();
+    }
+    if(action.dataset.action==='hospital'){state.hospitalAck=true; addAudit(`Hospital advisory acknowledged for ${incidentTitle()}`); showToast('Hospital advisory acknowledged.'); renderDecisionPanel();}
+    if(action.dataset.action==='override'){openSheet('override')}
+  });
+  const oldOpen=window.openSheet;
+  window.openSheet=function(k){
+    if(k==='audit'){
+      sheetTitle.textContent='Live Audit Log';
+      sheetBody.innerHTML=`<table class="table"><tr><th>Time</th><th>Actor</th><th>Action</th></tr>${state.audit.map(a=>`<tr><td>${a.stamp}</td><td>${a.actor}</td><td>${a.action}</td></tr>`).join('') || '<tr><td>Now</td><td>System</td><td>No supervisor actions yet</td></tr>'}</table>`;
+      sheet.classList.add('open'); return;
+    }
+    oldOpen(k);
+  };
+  document.addEventListener('DOMContentLoaded',()=>{selectIncident(0); addAudit('Dashboard opened'); renderDecisionPanel();});
+  setTimeout(()=>{selectIncident(0); addAudit('Dashboard opened'); renderDecisionPanel();}, 0);
+})();
+</script>
+
 </body></html>
