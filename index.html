@@ -39,7 +39,7 @@ function showToast(s){toast.textContent=s;toast.classList.add('show');setTimeout
 <script>
 // Live dashboard adapter: replace /data.json with a real API endpoint when ready.
 // Expected shape: { mission:{value:"78%", scope:"Brownsville"}, lastUpdated:"17:14", sites:[...], alerts:[...] }
-const LIVE_ENDPOINT = './data.json';
+const LIVE_ENDPOINT = location.hostname.endsWith('github.io') && !location.search.includes('real=1') ? './data.json' : './api/live-incidents';
 async function refreshLiveData(){
   try{
     const res = await fetch(LIVE_ENDPOINT + '?t=' + Date.now(), {cache:'no-store'});
@@ -215,4 +215,10 @@ setInterval(refreshLiveData, 15000);
 })();
 </script>
 
+
+<script>
+// Real incident endpoint plumbing:
+// - local/server deploy: /api/live-incidents proxies INCIDENTS_ENDPOINT and normalizes to dashboard JSON
+// - GitHub Pages demo: static data.json remains the fallback because Pages cannot run Python
+</script>
 </body></html>
