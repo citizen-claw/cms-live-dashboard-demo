@@ -145,4 +145,74 @@ setInterval(refreshLiveData, 15000);
 })();
 </script>
 
+
+<style>
+/* Next-phase demo controls */
+.demo-fab{position:fixed;right:18px;bottom:18px;z-index:20;border:1px solid rgba(10,132,255,.55);background:rgba(10,132,255,.92);color:white;border-radius:999px;padding:12px 16px;font-weight:800;box-shadow:0 12px 32px rgba(0,0,0,.35);cursor:pointer}.demo-fab:hover{filter:brightness(1.08)}.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.demo-card{border:1px solid var(--hair);border-radius:14px;background:var(--surface2);padding:12px}.demo-card b{display:block;margin-bottom:5px}.demo-note{border:1px solid rgba(255,214,10,.35);background:rgba(255,214,10,.08);border-radius:14px;padding:10px;color:var(--secondary);font-size:13px;line-height:1.35}.mini-form{display:grid;gap:8px;margin-top:12px}.mini-form input,.mini-form select{border:1px solid var(--hair);border-radius:12px;background:#0B0D12;color:var(--text);padding:10px;font:inherit}.status-flash{animation:flashGreen 900ms ease-out 1}@keyframes flashGreen{0%{background:rgba(48,209,88,.28)}100%{background:transparent}}
+</style>
+<button class="demo-fab" id="demoControlsBtn">Demo Controls</button>
+<script>
+(function(){
+  const scenarios=[
+    {title:'Shots Fired — Crown Heights',status:'MONITORING',tone:'red',time:'now',description:'Multiple Citizen reports. Supervisor confirmation required before dispatch.'},
+    {title:'Retaliation Risk — East Harlem',status:'HIGH RISK',tone:'yellow',time:'now',description:'Known conflict area. VI availability check recommended; no auto-dispatch.'},
+    {title:'Hospital Follow-Up — Brookdale',status:'FOLLOW-UP',tone:'blue',time:'now',description:'Destination advisory available. Hospital lead ack required.'}
+  ];
+  function pct(n){return Math.max(50, Math.min(96, n))+'%'}
+  function bumpMetric(delta){
+    const el=document.getElementById('missionValue');
+    const current=parseInt(el.textContent,10)||78;
+    el.textContent=pct(current+delta);
+    el.classList.add('status-flash'); setTimeout(()=>el.classList.remove('status-flash'),900);
+    document.getElementById('lastUpdated').textContent='Updated just now';
+  }
+  function openDemoControls(){
+    sheetTitle.textContent='Demo Control Room';
+    sheetBody.innerHTML=`
+      <div class="demo-note"><b>Demo-only next phase:</b> these controls simulate a live backend, supervisor actions, and site metric movement without connecting to real Citizen systems.</div>
+      <div class="demo-grid" style="margin-top:12px">
+        <button class="choice" data-demo="new-alert"><b>Inject New Alert</b><span class="caption">Adds a fresh incident to intake</span></button>
+        <button class="choice" data-demo="improve"><b>Improve Metric</b><span class="caption">Shows response target moving up</span></button>
+        <button class="choice" data-demo="degrade"><b>Capacity Stress</b><span class="caption">Shows target metric pressure</span></button>
+        <button class="choice" data-demo="resolve"><b>Resolve Active</b><span class="caption">Marks selected incident resolved</span></button>
+      </div>
+      <div class="mini-form">
+        <input id="customAlertTitle" placeholder="Custom alert title" />
+        <select id="customAlertTone"><option value="red">Critical</option><option value="yellow">High risk</option><option value="blue">Advisory</option><option value="green">Resolved</option></select>
+        <button class="btn primary" data-demo="custom-alert">Add Custom Demo Alert</button>
+      </div>
+      <div class="timeline" style="margin-top:14px"><div class="timeline-row"><b>Next phase ready</b> Simulated live ops controls added for walkthroughs.</div><div class="timeline-row"><b>Production gap</b> Real API, auth, permissions, and persistent audit still required.</div></div>`;
+    sheet.classList.add('open');
+  }
+  function prependAlert(alert){
+    const list=document.querySelector('#dispatch .card-body'); if(!list) return;
+    const div=document.createElement('div');
+    div.className='incident-card active pulse';
+    div.innerHTML=`<div class="meta"><span class="status-pill ${alert.tone}">${alert.status}</span><span class="caption">${alert.time}</span></div><h3>${alert.title}</h3><p>${alert.description}</p>`;
+    list.querySelectorAll('.incident-card').forEach(c=>c.classList.remove('active'));
+    list.prepend(div);
+    const title=document.querySelector('.card-title .status-pill.red');
+    showToast('New demo alert injected into intake.');
+    document.getElementById('lastUpdated').textContent='Updated just now';
+  }
+  document.addEventListener('click', e=>{
+    if(e.target.closest('#demoControlsBtn')){openDemoControls(); return;}
+    const demo=e.target.closest('[data-demo]'); if(!demo) return;
+    const action=demo.dataset.demo;
+    if(action==='new-alert') prependAlert(scenarios[Math.floor(Math.random()*scenarios.length)]);
+    if(action==='improve'){bumpMetric(3); showToast('Metric improved for demo.');}
+    if(action==='degrade'){bumpMetric(-5); showToast('Capacity stress simulated.');}
+    if(action==='resolve'){
+      const card=document.querySelector('#dispatch .incident-card.active') || document.querySelector('#dispatch .incident-card');
+      if(card){const pill=card.querySelector('.status-pill'); pill.textContent='RESOLVED'; pill.className='status-pill green'; card.classList.add('confirmed'); showToast('Active incident resolved in demo.');}
+    }
+    if(action==='custom-alert'){
+      const title=document.getElementById('customAlertTitle')?.value?.trim() || 'Custom Demo Alert';
+      const tone=document.getElementById('customAlertTone')?.value || 'blue';
+      prependAlert({title,status:tone==='red'?'MONITORING':tone==='yellow'?'HIGH RISK':tone==='green'?'RESOLVED':'ADVISORY',tone,time:'now',description:'Custom demo scenario. Staff confirmation required before any operational action.'});
+    }
+  });
+})();
+</script>
+
 </body></html>
